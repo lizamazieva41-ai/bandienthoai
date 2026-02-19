@@ -35,10 +35,14 @@ docs/
 │   ├── operations-manual.md        Sổ tay vận hành
 │   ├── monitoring-alerting.md      Giám sát & cảnh báo
 │   └── support-maintenance.md      Hỗ trợ & bảo trì
-└── 07-project-management/
-    ├── risk-register.md            Sổ rủi ro dự án
-    ├── change-management.md        Quản lý thay đổi
-    └── resource-plan.md            Kế hoạch nguồn lực & ngân sách
+├── 07-project-management/
+│   ├── risk-register.md            Sổ rủi ro dự án
+│   ├── change-management.md        Quản lý thay đổi
+│   └── resource-plan.md            Kế hoạch nguồn lực & ngân sách
+└── 08-project-governance/
+    ├── document-consistency-review.md  Rà soát nhất quán tài liệu & decision log
+    ├── requirements-traceability-matrix.md  RTM: Use case → API → DB → Test case
+    └── mvp-product-backlog.md       Product backlog đã cắt phạm vi MVP
 ```
 
 ---
@@ -97,6 +101,13 @@ docs/
 | [Change Management](07-project-management/change-management.md) | Change request process, approval workflow |
 | [Resource Plan](07-project-management/resource-plan.md) | Ngân sách, nhân lực, vendor management |
 
+### H. Quản trị dự án (Project Governance)
+| Tài liệu | Mô tả |
+|---|---|
+| [Document Consistency Review](08-project-governance/document-consistency-review.md) | Rà soát mismatch BRD↔FRS↔NFR↔SAD↔OpenAPI↔DB + decision log |
+| [Requirements Traceability Matrix](08-project-governance/requirements-traceability-matrix.md) | RTM: mỗi use case → screen/UI → API → DB → test case |
+| [MVP Product Backlog](08-project-governance/mvp-product-backlog.md) | Product backlog đã cắt phạm vi: MUST/SHOULD/LATER + sprint plan |
+
 ---
 
 ## Phiên bản & Lịch sử
@@ -104,6 +115,7 @@ docs/
 | Phiên bản | Ngày | Tác giả | Ghi chú |
 |---|---|---|---|
 | 1.0.0 | 2026-02-19 | Team kỹ thuật | Bản khởi tạo |
+| 1.1.0 | 2026-02-19 | Team kỹ thuật | Thêm mục 08-project-governance: RTM, document consistency review, MVP backlog |
 
 ---
 
