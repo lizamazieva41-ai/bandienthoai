@@ -1,0 +1,1173 @@
+openapi: 3.0.3
+info:
+  title: Bandienthoai E-Commerce API
+  description: |
+    REST API cho ứng dụng web bán điện thoại di động.
+    
+    ## Authentication
+    - Public endpoints: Không yêu cầu token
+    - Customer endpoints: Bearer JWT token (Authorization: Bearer <access_token>)
+    - Admin endpoints: Bearer JWT token với admin role
+    
+    ## Rate Limiting
+    - Public API: 100 requests/phút/IP
+    - Authenticated: 1000 requests/phút/user
+    
+    ## Versioning
+    URL versioning: /api/v1/
+  version: 1.0.0
+  contact:
+    name: Tech Team
+    email: tech@bandienthoai.vn
+  license:
+    name: Private
+
+servers:
+  - url: https://api.bandienthoai.vn/api/v1
+    description: Production
+  - url: https://api-staging.bandienthoai.vn/api/v1
+    description: Staging
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+tags:
+  - name: Auth
+    description: Xác thực người dùng
+  - name: Products
+    description: Sản phẩm & danh mục (Public)
+  - name: Cart
+    description: Giỏ hàng
+  - name: Orders
+    description: Đơn hàng
+  - name: Payments
+    description: Thanh toán
+  - name: Shipping
+    description: Giao vận
+  - name: Account
+    description: Tài khoản khách hàng
+  - name: Admin - Products
+    description: Quản lý sản phẩm (Admin)
+  - name: Admin - Inventory
+    description: Quản lý tồn kho (Admin)
+  - name: Admin - Orders
+    description: Quản lý đơn hàng (Admin)
+  - name: Admin - Reports
+    description: Báo cáo (Admin)
+  - name: Webhooks
+    description: Webhook callbacks từ đối tác
+
+paths:
+  # ==================== AUTH ====================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Đăng ký tài khoản
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password, name]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                  example: "0901234567"
+                password:
+                  type: string
+                  minLength: 8
+                  example: "Password123"
+                name:
+                  type: string
+                  example: "Nguyễn Văn A"
+      responses:
+        '201':
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Số điện thoại đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "0901234567"
+                password:
+                  type: string
+                  example: "Password123"
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Sai thông tin đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Làm mới access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token mới
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Đăng xuất
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Đăng xuất thành công
+
+  # ==================== PRODUCTS ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: Danh sách sản phẩm
+      parameters:
+        - name: q
+          in: query
+          description: Từ khóa tìm kiếm
+          schema:
+            type: string
+          example: "iPhone 15"
+        - name: brand
+          in: query
+          schema:
+            type: string
+          example: "Apple"
+        - name: category
+          in: query
+          schema:
+            type: string
+          example: "dien-thoai-apple"
+        - name: minPrice
+          in: query
+          schema:
+            type: integer
+          example: 5000000
+        - name: maxPrice
+          in: query
+          schema:
+            type: integer
+          example: 30000000
+        - name: storage
+          in: query
+          schema:
+            type: string
+          example: "256GB"
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, newest, popular]
+          example: "price_asc"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Danh sách sản phẩm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+
+  /products/{slug}:
+    get:
+      tags: [Products]
+      summary: Chi tiết sản phẩm
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "apple-iphone-15-pro"
+      responses:
+        '200':
+          description: Chi tiết sản phẩm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: Không tìm thấy sản phẩm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /categories:
+    get:
+      tags: [Products]
+      summary: Danh sách danh mục
+      responses:
+        '200':
+          description: Cây danh mục
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+  # ==================== CART ====================
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Xem giỏ hàng
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Giỏ hàng hiện tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Thêm vào giỏ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [variantId, qty]
+              properties:
+                variantId:
+                  type: string
+                  format: uuid
+                qty:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Giỏ hàng sau khi thêm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          description: Không đủ tồn kho
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cart/voucher:
+    post:
+      tags: [Cart]
+      summary: Áp dụng voucher
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  example: "SALE10"
+      responses:
+        '200':
+          description: Giỏ hàng với voucher đã áp dụng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          description: Mã voucher không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== ORDERS ====================
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Tạo đơn hàng (checkout)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Đơn hàng được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Dữ liệu không hợp lệ hoặc hết hàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Orders]
+      summary: Danh sách đơn hàng của tôi
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách đơn hàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Chi tiết đơn hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chi tiết đơn hàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Hủy đơn hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Hủy thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  # ==================== PAYMENTS ====================
+  /payments/create:
+    post:
+      tags: [Payments]
+      summary: Tạo link thanh toán
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, provider]
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                provider:
+                  type: string
+                  enum: [vnpay, momo, zalopay]
+                returnUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Link thanh toán
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentUrl:
+                    type: string
+                    format: uri
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  # ==================== SHIPPING ====================
+  /shipping/estimate:
+    post:
+      tags: [Shipping]
+      summary: Ước tính phí giao hàng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toProvince, toDistrict, toWard, weight]
+              properties:
+                toProvince:
+                  type: string
+                  example: "Hà Nội"
+                toDistrict:
+                  type: string
+                  example: "Cầu Giấy"
+                toWard:
+                  type: string
+                  example: "Dịch Vọng"
+                weight:
+                  type: integer
+                  description: Gram
+                  example: 300
+      responses:
+        '200':
+          description: Các tùy chọn giao hàng với phí
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  options:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ShippingOption'
+
+  # ==================== ADMIN PRODUCTS ====================
+  /admin/products:
+    get:
+      tags: [Admin - Products]
+      summary: Danh sách sản phẩm (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, draft, archived]
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Danh sách sản phẩm (admin view)
+    post:
+      tags: [Admin - Products]
+      summary: Tạo sản phẩm mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Sản phẩm được tạo
+
+  /admin/products/{id}:
+    put:
+      tags: [Admin - Products]
+      summary: Cập nhật sản phẩm
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '200':
+          description: Sản phẩm được cập nhật
+    delete:
+      tags: [Admin - Products]
+      summary: Xóa (archive) sản phẩm
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Đã archive sản phẩm
+
+  # ==================== ADMIN INVENTORY ====================
+  /admin/inventory:
+    get:
+      tags: [Admin - Inventory]
+      summary: Xem tồn kho
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+          description: Chỉ hiển thị sản phẩm tồn thấp
+      responses:
+        '200':
+          description: Danh sách tồn kho
+
+  /admin/inventory/adjust:
+    post:
+      tags: [Admin - Inventory]
+      summary: Điều chỉnh tồn kho thủ công
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [warehouseId, variantId, adjustment, reason]
+              properties:
+                warehouseId:
+                  type: string
+                  format: uuid
+                variantId:
+                  type: string
+                  format: uuid
+                adjustment:
+                  type: integer
+                  description: Số dương = nhập, âm = xuất
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Tồn kho sau điều chỉnh
+
+  # ==================== ADMIN ORDERS ====================
+  /admin/orders:
+    get:
+      tags: [Admin - Orders]
+      summary: Danh sách đơn hàng (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Danh sách đơn
+
+  /admin/orders/{id}/status:
+    patch:
+      tags: [Admin - Orders]
+      summary: Cập nhật trạng thái đơn hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, packing, shipping, delivered, completed, cancelled]
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Đơn hàng được cập nhật
+
+  # ==================== ADMIN REPORTS ====================
+  /admin/reports/revenue:
+    get:
+      tags: [Admin - Reports]
+      summary: Báo cáo doanh thu
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+      responses:
+        '200':
+          description: Dữ liệu doanh thu
+
+  # ==================== WEBHOOKS ====================
+  /webhooks/payment/{provider}:
+    post:
+      tags: [Webhooks]
+      summary: Payment webhook callback
+      description: |
+        Nhận callback từ cổng thanh toán sau khi giao dịch hoàn tất.
+        Yêu cầu xác thực HMAC-SHA256 signature trong header.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [vnpay, momo, zalopay, kredivo]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payload tùy theo provider
+      responses:
+        '200':
+          description: Webhook xử lý thành công
+        '400':
+          description: Signature không hợp lệ
+
+  /webhooks/shipping/{carrier}:
+    post:
+      tags: [Webhooks]
+      summary: Shipping webhook callback
+      description: |
+        Nhận cập nhật trạng thái vận chuyển từ carrier (GHN/GHTK).
+        Yêu cầu xác thực token trong header.
+      parameters:
+        - name: carrier
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [ghn, ghtk]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payload theo chuẩn carrier
+      responses:
+        '200':
+          description: Webhook xử lý thành công
+
+# ==================== COMPONENTS ====================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Seconds
+          example: 900
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        tier:
+          type: string
+          enum: [regular, silver, gold, vip]
+
+    ProductListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ProductSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brand:
+          type: string
+          example: "Apple"
+        model:
+          type: string
+          example: "iPhone 15 Pro"
+        slug:
+          type: string
+          example: "apple-iphone-15-pro"
+        thumbnail:
+          type: string
+          format: uri
+        minPrice:
+          type: integer
+          description: VNĐ
+          example: 28990000
+        maxPrice:
+          type: integer
+          example: 34990000
+        hasSale:
+          type: boolean
+        inStock:
+          type: boolean
+
+    ProductDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brand:
+          type: string
+        model:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        specs:
+          type: object
+          additionalProperties: true
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariant'
+        seo:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+            schema:
+              type: object
+
+    ProductVariant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        color:
+          type: string
+          example: "Titan Đen"
+        storage:
+          type: string
+          example: "256GB"
+        sku:
+          type: string
+        listPrice:
+          type: integer
+        salePrice:
+          type: integer
+          nullable: true
+        available:
+          type: integer
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: integer
+        discount:
+          type: integer
+        shippingFee:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+        voucher:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+            discount:
+              type: integer
+
+    CartItem:
+      type: object
+      properties:
+        variantId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        variantName:
+          type: string
+        qty:
+          type: integer
+        unitPrice:
+          type: integer
+        totalPrice:
+          type: integer
+        thumbnail:
+          type: string
+          format: uri
+
+    CreateOrderRequest:
+      type: object
+      required: [addressId, paymentMethod, shippingMethod]
+      properties:
+        addressId:
+          type: string
+          format: uuid
+        paymentMethod:
+          type: string
+          enum: [cod, bank_transfer, vnpay, momo, zalopay, kredivo]
+        shippingMethod:
+          type: string
+          enum: [standard, express, pickup]
+        carrierId:
+          type: string
+          enum: [ghn, ghtk]
+        voucherCode:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        allowOpenPackage:
+          type: boolean
+          default: false
+          description: Cho phép đồng kiểm khi nhận hàng
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "ORD-20260219-001"
+        status:
+          type: string
+        total:
+          type: integer
+        paymentUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Chỉ có khi paymentMethod là online
+
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/OrderResponse'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/CartItem'
+            shippingAddress:
+              type: object
+            statusHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  changedAt:
+                    type: string
+                    format: date-time
+                  changedBy:
+                    type: string
+            shipment:
+              type: object
+              nullable: true
+              properties:
+                carrier:
+                  type: string
+                trackingCode:
+                  type: string
+                status:
+                  type: string
+                events:
+                  type: array
+
+    OrderListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ShippingOption:
+      type: object
+      properties:
+        carrier:
+          type: string
+          enum: [ghn, ghtk]
+        service:
+          type: string
+          example: "Giao hàng nhanh"
+        fee:
+          type: integer
+          description: VNĐ
+        estimatedDays:
+          type: integer
+
+    CreateProductRequest:
+      type: object
+      required: [brand, model, slug, status]
+      properties:
+        brand:
+          type: string
+          example: "Apple"
+        model:
+          type: string
+          example: "iPhone 15 Pro"
+        slug:
+          type: string
+          example: "apple-iphone-15-pro"
+        description:
+          type: string
+        specs:
+          type: object
+        status:
+          type: string
+          enum: [active, draft, archived]
+        categoryIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        variants:
+          type: array
+          items:
+            type: object
+            required: [color, storage, sku, listPrice]
+            properties:
+              color:
+                type: string
+              storage:
+                type: string
+              sku:
+                type: string
+              listPrice:
+                type: integer
+              salePrice:
+                type: integer
+                nullable: true
+              trackImei:
+                type: boolean
+                default: false
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "PRODUCT_NOT_FOUND"
+            message:
+              type: string
+              example: "Sản phẩm không tìm thấy"
+            details:
+              type: object
+            requestId:
+              type: string
+              format: uuid
