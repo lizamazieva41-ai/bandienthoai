@@ -39,6 +39,33 @@ erDiagram
 
   ORDER_ITEM }o--o| IMEI_SERIAL : assigned
 
+  BANNER {
+    uuid id PK
+    string title
+    text image_url
+    text link_url
+    string position "home_top|home_middle|category"
+    boolean is_active
+    int sort_order
+    timestamptz starts_at
+    timestamptz ends_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  PAGE {
+    uuid id PK
+    string slug UK
+    string title
+    text content
+    string meta_title
+    text meta_description
+    boolean is_published
+    timestamptz published_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
   CUSTOMER {
     uuid id PK
     string phone UK
@@ -320,6 +347,37 @@ erDiagram
 | shipping_fee | BIGINT | DEFAULT 0 | Phí vận chuyển |
 | total | BIGINT | NOT NULL | Tổng tiền phải trả |
 
+### 2.5 Bảng BANNER
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| title | VARCHAR(255) | NOT NULL | Tiêu đề banner |
+| image_url | TEXT | NOT NULL | URL hình ảnh banner |
+| link_url | TEXT | | URL đích khi click (nullable) |
+| position | VARCHAR(50) | NOT NULL, CHECK IN ('home_top','home_middle','category') | Vị trí hiển thị: home_top, home_middle, category |
+| is_active | BOOLEAN | DEFAULT true | Banner có đang hiển thị không |
+| sort_order | INT | DEFAULT 0 | Thứ tự hiển thị |
+| starts_at | TIMESTAMPTZ | | Thời gian bắt đầu hiển thị (nullable) |
+| ends_at | TIMESTAMPTZ | | Thời gian kết thúc hiển thị (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.6 Bảng PAGE
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| slug | VARCHAR(255) | UNIQUE, NOT NULL | Đường dẫn URL thân thiện |
+| title | VARCHAR(255) | NOT NULL | Tiêu đề trang |
+| content | TEXT | | Nội dung HTML/Markdown |
+| meta_title | VARCHAR(255) | | Meta title cho SEO (nullable) |
+| meta_description | TEXT | | Meta description cho SEO (nullable) |
+| is_published | BOOLEAN | DEFAULT false | Trang có được publish chưa |
+| published_at | TIMESTAMPTZ | | Thời gian publish (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
 ---
 
 ## 3. Indexing Strategy
@@ -366,6 +424,14 @@ CREATE INDEX idx_promotion_active ON promotion(is_active, starts_at, ends_at);
 
 -- Full-text search (PostgreSQL tsvector)
 CREATE INDEX idx_product_fts ON product USING gin(to_tsvector('simple', coalesce(brand,'') || ' ' || coalesce(model,'')));
+
+-- Banner
+CREATE INDEX idx_banner_position ON banner(position);
+CREATE INDEX idx_banner_active ON banner(is_active, sort_order);
+
+-- Page
+CREATE INDEX idx_page_slug ON page(slug);
+CREATE INDEX idx_page_published ON page(is_published);
 ```
 
 ### 3.3 Partial Indexes

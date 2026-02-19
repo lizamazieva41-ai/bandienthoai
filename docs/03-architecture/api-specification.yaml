@@ -51,8 +51,12 @@ tags:
     description: Quản lý tồn kho (Admin)
   - name: Admin - Orders
     description: Quản lý đơn hàng (Admin)
+  - name: Admin - CMS
+    description: Quản lý nội dung CMS (Admin)
   - name: Admin - Reports
     description: Báo cáo (Admin)
+  - name: Public - SEO
+    description: SEO & sitemap (Public)
   - name: Webhooks
     description: Webhook callbacks từ đối tác
 
@@ -697,8 +701,7 @@ paths:
               required: [status]
               properties:
                 status:
-                  type: string
-                  enum: [confirmed, packing, shipping, delivered, completed, cancelled]
+                  $ref: '#/components/schemas/OrderStatus'
                 note:
                   type: string
       responses:
@@ -733,6 +736,221 @@ paths:
       responses:
         '200':
           description: Dữ liệu doanh thu
+
+  # ==================== ADMIN CMS ====================
+  /admin/banners:
+    get:
+      tags: [Admin - CMS]
+      summary: Danh sách banner (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: string
+            enum: [home_top, home_middle, category]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Danh sách banner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Banner'
+    post:
+      tags: [Admin - CMS]
+      summary: Tạo banner mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerRequest'
+      responses:
+        '201':
+          description: Banner được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+
+  /admin/banners/{id}:
+    put:
+      tags: [Admin - CMS]
+      summary: Cập nhật banner
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerRequest'
+      responses:
+        '200':
+          description: Banner được cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '404':
+          description: Banner không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Admin - CMS]
+      summary: Xóa banner
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Banner đã xóa
+        '404':
+          description: Banner không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/pages:
+    get:
+      tags: [Admin - CMS]
+      summary: Danh sách trang tĩnh (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isPublished
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Danh sách trang tĩnh
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Page'
+    post:
+      tags: [Admin - CMS]
+      summary: Tạo trang tĩnh mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageRequest'
+      responses:
+        '201':
+          description: Trang tĩnh được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+
+  /admin/pages/{id}:
+    put:
+      tags: [Admin - CMS]
+      summary: Cập nhật trang tĩnh
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageRequest'
+      responses:
+        '200':
+          description: Trang tĩnh được cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+        '404':
+          description: Trang không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Admin - CMS]
+      summary: Xóa trang tĩnh
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Trang đã xóa
+        '404':
+          description: Trang không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== SEO ====================
+  /sitemap.xml:
+    get:
+      tags: [Public - SEO]
+      summary: Sitemap XML tự động
+      description: |
+        Trả về sitemap.xml chứa tất cả URL sản phẩm và trang tĩnh đang hoạt động.
+        Tự động cập nhật khi có sản phẩm mới hoặc trang tĩnh mới được publish.
+      responses:
+        '200':
+          description: Sitemap XML
+          content:
+            application/xml:
+              schema:
+                type: string
+                description: XML sitemap theo chuẩn sitemaps.org
 
   # ==================== WEBHOOKS ====================
   /webhooks/payment/{provider}:
@@ -1026,7 +1244,7 @@ components:
           type: string
           example: "ORD-20260219-001"
         status:
-          type: string
+          $ref: '#/components/schemas/OrderStatus'
         total:
           type: integer
         paymentUrl:
@@ -1171,3 +1389,142 @@ components:
             requestId:
               type: string
               format: uuid
+
+    OrderStatus:
+      type: string
+      description: Trạng thái đơn hàng
+      enum:
+        - new
+        - confirmed
+        - packing
+        - shipping
+        - delivered
+        - completed
+        - cancelled
+        - return_requested
+        - returned
+
+    Banner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "Khuyến mãi tháng 3"
+        imageUrl:
+          type: string
+          format: uri
+        linkUrl:
+          type: string
+          format: uri
+          nullable: true
+        position:
+          type: string
+          enum: [home_top, home_middle, category]
+        isActive:
+          type: boolean
+        sortOrder:
+          type: integer
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BannerRequest:
+      type: object
+      required: [title, imageUrl, position]
+      properties:
+        title:
+          type: string
+          example: "Khuyến mãi tháng 3"
+        imageUrl:
+          type: string
+          format: uri
+        linkUrl:
+          type: string
+          format: uri
+          nullable: true
+        position:
+          type: string
+          enum: [home_top, home_middle, category]
+        isActive:
+          type: boolean
+          default: true
+        sortOrder:
+          type: integer
+          default: 0
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Page:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          example: "chinh-sach-doi-tra"
+        title:
+          type: string
+          example: "Chính sách đổi trả"
+        content:
+          type: string
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PageRequest:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+          example: "chinh-sach-doi-tra"
+        title:
+          type: string
+          example: "Chính sách đổi trả"
+        content:
+          type: string
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        isPublished:
+          type: boolean
+          default: false

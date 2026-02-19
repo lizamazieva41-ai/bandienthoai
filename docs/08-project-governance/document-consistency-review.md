@@ -28,8 +28,8 @@ Mỗi tài liệu được so khớp theo 4 chiều:
 | FRS (`functional-requirements.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | NFR (`non-functional-requirements.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | SAD (`system-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
-| OpenAPI (`api-specification.yaml`) | 1.0.0 | 2026-02-19 | ⚠️ Thiếu một số endpoint (xem §3) |
-| DB Design (`database-design.md`) | 1.0.0 | 2026-02-19 | ⚠️ Thiếu bảng CMS/Banner (xem §3) |
+| OpenAPI (`api-specification.yaml`) | 1.1.0 | 2026-02-19 | ✅ Hoàn chỉnh (enum trạng thái + CMS endpoints đã bổ sung) |
+| DB Design (`database-design.md`) | 1.1.0 | 2026-02-19 | ✅ Hoàn chỉnh (bảng banners + pages đã bổ sung) |
 | Integration Architecture (`integration-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | Security Architecture (`security-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | Roadmap (`roadmap.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
@@ -47,9 +47,10 @@ Mỗi tài liệu được so khớp theo 4 chiều:
 | Trạng thái RETURNED | Có | Không có trong enum |
 
 **Mức độ:** 🔴 Cao – API enum sẽ reject request hợp lệ từ FE  
-**Quyết định:** Cập nhật OpenAPI enum trạng thái đơn hàng bao gồm đầy đủ: `NEW`, `CONFIRMED`, `PACKING`, `SHIPPING`, `DELIVERED`, `COMPLETED`, `CANCELLED`, `RETURN_REQUESTED`, `RETURNED`  
+**Quyết định:** Cập nhật OpenAPI enum trạng thái đơn hàng bao gồm đầy đủ: `new`, `confirmed`, `packing`, `shipping`, `delivered`, `completed`, `cancelled`, `return_requested`, `returned`  
 **Người quyết định:** Tech Lead  
-**Hạn chót:** Sprint 2
+**Hạn chót:** Sprint 2  
+**Trạng thái:** ✅ Đã xử lý – Schema `OrderStatus` đã bổ sung vào OpenAPI (components/schemas) và được tham chiếu bởi endpoint `/admin/orders/{id}/status` và `OrderResponse`
 
 ---
 
@@ -107,7 +108,8 @@ CREATE TABLE pages (
 );
 ```
 **Người quyết định:** Tech Lead  
-**Hạn chót:** Trước Sprint 1
+**Hạn chót:** Trước Sprint 1  
+**Trạng thái:** ✅ Đã xử lý – Bảng `BANNER` và `PAGE` đã bổ sung vào ERD, Data Dictionary (§2.5, §2.6), và Indexing Strategy trong `database-design.md`
 
 ---
 
@@ -178,7 +180,8 @@ CREATE TABLE pages (
 - `GET/POST /admin/pages`
 - `PUT/DELETE /admin/pages/{id}`
 **Người quyết định:** Tech Lead  
-**Hạn chót:** Sprint 1
+**Hạn chót:** Sprint 1  
+**Trạng thái:** ✅ Đã xử lý – Tất cả CMS admin endpoints và `GET /sitemap.xml` đã bổ sung vào `api-specification.yaml` với tag `Admin - CMS` và `Public - SEO`; schemas `Banner`, `BannerRequest`, `Page`, `PageRequest` đã thêm vào components
 
 ---
 
@@ -210,12 +213,12 @@ CREATE TABLE pages (
 
 | ID | Quyết định | Trạng thái | Ảnh hưởng đến |
 |---|---|---|---|
-| DEC-01 | Cập nhật OpenAPI enum trạng thái đơn hàng đầy đủ 9 trạng thái | 🟡 Pending | OpenAPI, FE, BE |
+| DEC-01 | Cập nhật OpenAPI enum trạng thái đơn hàng đầy đủ 9 trạng thái | ✅ Đã thực hiện | OpenAPI, FE, BE |
 | DEC-02 | MVP auth: chỉ phone/password; email + Google OAuth vào Phase 2 | 🟡 Pending | FRS, OpenAPI, FE Auth |
-| DEC-03 | Bổ sung bảng `banners` và `pages` vào DB Design | 🟡 Pending | DB Design, BE CMS module |
+| DEC-03 | Bổ sung bảng `banners` và `pages` vào DB Design | ✅ Đã thực hiện | DB Design, BE CMS module |
 | DEC-04 | Chốt rate limit: public 100/phút, authenticated 1000/phút | 🟡 Pending | NFR, FRS GLOBAL-BR-05 |
 | DEC-05 | Bổ sung refund flow sequence diagram vào SAD | 🟡 Pending | SAD, OpenAPI |
-| DEC-06 | Bổ sung admin CMS endpoints vào OpenAPI | 🟡 Pending | OpenAPI, FE Admin |
+| DEC-06 | Bổ sung admin CMS endpoints vào OpenAPI | ✅ Đã thực hiện | OpenAPI, FE Admin |
 | DEC-07 | Ghi nhận ship fee tolerance ±5% vào Integration Architecture | 🟡 Pending | Integration Architecture |
 | DEC-08 | Thêm Blog vào Phase 3 Roadmap | 🟡 Pending | Roadmap |
 
@@ -231,7 +234,7 @@ CREATE TABLE pages (
 
 **Độ nhất quán tổng thể:** ~75% (7/10 điểm rà soát không có vấn đề nghiêm trọng)
 
-> Tiêu chí "sẵn sàng triển khai": cần giải quyết tất cả mismatch 🔴 trước Sprint 1 và mismatch 🟡 trước sprint tương ứng.
+> ✅ **Cập nhật Sprint 0:** Tất cả 3 mismatch 🔴 (MISMATCH-01, 03, 08) đã được xử lý. OpenAPI đã có đầy đủ enum trạng thái đơn hàng và CMS endpoints; DB Design đã có bảng `banners` và `pages`. **Tiêu chí "sẵn sàng triển khai kỹ thuật" đã đạt.** Các mismatch 🟡 còn lại cần xử lý trước sprint tương ứng theo kế hoạch.
 
 ---
 
