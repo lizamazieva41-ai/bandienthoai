@@ -15,7 +15,7 @@ info:
     
     ## Versioning
     URL versioning: /api/v1/
-  version: 1.0.0
+  version: 1.2.0
   contact:
     name: Tech Team
     email: tech@bandienthoai.vn
@@ -53,6 +53,12 @@ tags:
     description: Quản lý đơn hàng (Admin)
   - name: Admin - CMS
     description: Quản lý nội dung CMS (Admin)
+  - name: Admin - Staff
+    description: Quản lý nhân viên (Admin)
+  - name: Admin - Promotions
+    description: Quản lý khuyến mãi & voucher (Admin)
+  - name: Admin - CS
+    description: Quản lý CSKH & bảo hành (Admin)
   - name: Admin - Reports
     description: Báo cáo (Admin)
   - name: Public - SEO
@@ -162,6 +168,121 @@ paths:
       responses:
         '204':
           description: Đăng xuất thành công
+
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Xác thực OTP đăng ký
+      description: Xác thực mã OTP gửi tới số điện thoại sau khi đăng ký
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, otp]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                  example: "0901234567"
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  example: "123456"
+      responses:
+        '200':
+          description: Xác thực thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: OTP không hợp lệ hoặc đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Yêu cầu đặt lại mật khẩu
+      description: Gửi OTP tới số điện thoại để bắt đầu quy trình reset mật khẩu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                  example: "0901234567"
+      responses:
+        '200':
+          description: OTP đã được gửi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP đã được gửi tới số điện thoại"
+        '404':
+          description: Số điện thoại chưa đăng ký
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Đặt lại mật khẩu mới
+      description: Xác thực OTP và đặt mật khẩu mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, otp, newPassword]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                  example: "0901234567"
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  example: "123456"
+                newPassword:
+                  type: string
+                  minLength: 8
+                  example: "NewPassword123"
+      responses:
+        '200':
+          description: Mật khẩu đã được đặt lại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Mật khẩu đã được đặt lại thành công"
+        '400':
+          description: OTP không hợp lệ hoặc đã hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==================== PRODUCTS ====================
   /products:
@@ -598,7 +719,351 @@ paths:
         '204':
           description: Đã archive sản phẩm
 
-  # ==================== ADMIN INVENTORY ====================
+  /admin/products/{id}/images:
+    post:
+      tags: [Admin - Products]
+      summary: Upload ảnh sản phẩm
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                sortOrder:
+                  type: integer
+                  default: 0
+                isPrimary:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Ảnh đã được upload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  url:
+                    type: string
+                    format: uri
+                  sortOrder:
+                    type: integer
+                  isPrimary:
+                    type: boolean
+
+  /admin/products/{id}/images/{imageId}:
+    delete:
+      tags: [Admin - Products]
+      summary: Xóa ảnh sản phẩm
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Ảnh đã bị xóa
+        '404':
+          description: Ảnh không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/products/{id}/variants/{variantId}:
+    put:
+      tags: [Admin - Products]
+      summary: Cập nhật biến thể sản phẩm (bao gồm giá sale)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: variantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                color:
+                  type: string
+                storage:
+                  type: string
+                sku:
+                  type: string
+                listPrice:
+                  type: integer
+                salePrice:
+                  type: integer
+                  nullable: true
+                salePriceFrom:
+                  type: string
+                  format: date-time
+                  nullable: true
+                salePriceTo:
+                  type: string
+                  format: date-time
+                  nullable: true
+                trackImei:
+                  type: boolean
+                status:
+                  type: string
+                  enum: [active, inactive]
+      responses:
+        '200':
+          description: Biến thể được cập nhật
+
+  # ==================== ADMIN CATEGORIES ====================
+  /admin/categories:
+    get:
+      tags: [Admin - Products]
+      summary: Danh sách danh mục (Admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cây danh mục
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+    post:
+      tags: [Admin - Products]
+      summary: Tạo danh mục mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name:
+                  type: string
+                  example: "Điện thoại Apple"
+                slug:
+                  type: string
+                  example: "dien-thoai-apple"
+                parentId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                sortOrder:
+                  type: integer
+                  default: 0
+      responses:
+        '201':
+          description: Danh mục được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+  /admin/categories/{id}:
+    put:
+      tags: [Admin - Products]
+      summary: Cập nhật danh mục
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                parentId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                sortOrder:
+                  type: integer
+      responses:
+        '200':
+          description: Danh mục được cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+    delete:
+      tags: [Admin - Products]
+      summary: Xóa danh mục
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Danh mục đã bị xóa
+        '409':
+          description: Danh mục đang có sản phẩm, không thể xóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== ADMIN STAFF ====================
+  /admin/staff:
+    get:
+      tags: [Admin - Staff]
+      summary: Danh sách nhân viên (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [manager, staff, warehouse]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách nhân viên
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StaffAccount'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags: [Admin - Staff]
+      summary: Tạo tài khoản nhân viên
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, role]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                role:
+                  type: string
+                  enum: [manager, staff, warehouse]
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: Tài khoản nhân viên được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffAccount'
+
+  /admin/staff/{id}/role:
+    put:
+      tags: [Admin - Staff]
+      summary: Cập nhật vai trò nhân viên
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [manager, staff, warehouse]
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Vai trò đã được cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffAccount'
   /admin/inventory:
     get:
       tags: [Admin - Inventory]
@@ -648,6 +1113,215 @@ paths:
       responses:
         '200':
           description: Tồn kho sau điều chỉnh
+
+  /admin/inventory/imei:
+    get:
+      tags: [Admin - Inventory]
+      summary: Danh sách IMEI/serial
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: variantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [in_stock, reserved, sold, returned, warranty]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách IMEI/serial
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ImeiSerial'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags: [Admin - Inventory]
+      summary: Thêm IMEI/serial mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [variantId, imei]
+              properties:
+                variantId:
+                  type: string
+                  format: uuid
+                imei:
+                  type: string
+                  example: "354688110123456"
+      responses:
+        '201':
+          description: IMEI/serial đã được thêm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImeiSerial'
+        '409':
+          description: IMEI đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/inventory/imei/{imei}:
+    get:
+      tags: [Admin - Inventory]
+      summary: Tra cứu theo IMEI
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: imei
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "354688110123456"
+      responses:
+        '200':
+          description: Thông tin IMEI và lịch sử
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImeiSerial'
+        '404':
+          description: IMEI không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/purchase-orders:
+    post:
+      tags: [Admin - Inventory]
+      summary: Tạo Purchase Order (nhập hàng)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supplierId, items]
+              properties:
+                supplierId:
+                  type: string
+                  format: uuid
+                expectedAt:
+                  type: string
+                  format: date
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [variantId, qtyOrdered, unitCost]
+                    properties:
+                      variantId:
+                        type: string
+                        format: uuid
+                      qtyOrdered:
+                        type: integer
+                        minimum: 1
+                      unitCost:
+                        type: integer
+      responses:
+        '201':
+          description: Purchase Order đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  poNumber:
+                    type: string
+                    example: "PO-20260219-001"
+                  status:
+                    type: string
+                    enum: [draft, ordered, partial, received, cancelled]
+    get:
+      tags: [Admin - Inventory]
+      summary: Danh sách Purchase Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, ordered, partial, received, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách Purchase Orders
+
+  /admin/purchase-orders/{id}/receive:
+    post:
+      tags: [Admin - Inventory]
+      summary: Nhận hàng và cập nhật tồn kho
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [variantId, qtyReceived]
+                    properties:
+                      variantId:
+                        type: string
+                        format: uuid
+                      qtyReceived:
+                        type: integer
+                        minimum: 0
+                      imeiList:
+                        type: array
+                        items:
+                          type: string
+                        description: Danh sách IMEI (nếu variant có track_imei = true)
+      responses:
+        '200':
+          description: Đã nhận hàng, tồn kho đã cập nhật
 
   # ==================== ADMIN ORDERS ====================
   /admin/orders:
@@ -708,6 +1382,473 @@ paths:
         '200':
           description: Đơn hàng được cập nhật
 
+  /admin/orders/{id}/cancel:
+    put:
+      tags: [Admin - Orders]
+      summary: Huỷ đơn hàng (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Đơn hàng đã bị huỷ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  /admin/orders/{id}/shipments:
+    post:
+      tags: [Admin - Orders]
+      summary: Tạo vận đơn cho đơn hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carrier]
+              properties:
+                carrier:
+                  type: string
+                  enum: [ghn, ghtk]
+                allowOpenPackage:
+                  type: boolean
+                  default: false
+                codAmount:
+                  type: integer
+                  nullable: true
+                  description: Số tiền thu hộ (COD), null nếu đã thanh toán trước
+      responses:
+        '201':
+          description: Vận đơn đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trackingCode:
+                    type: string
+                  carrier:
+                    type: string
+                  labelUrl:
+                    type: string
+                    format: uri
+
+  /admin/orders/{id}/refund:
+    post:
+      tags: [Admin - Orders]
+      summary: Hoàn tiền đơn hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, reason]
+              properties:
+                amount:
+                  type: integer
+                  description: Số tiền hoàn (VNĐ)
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Yêu cầu hoàn tiền đã được tạo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refundId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [pending, processing, completed, failed]
+
+  /admin/orders/{id}/shipping-address:
+    put:
+      tags: [Admin - Orders]
+      summary: Thay đổi địa chỉ giao hàng (trước khi tạo vận đơn)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, province, district, ward, street]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                  pattern: '^0[0-9]{9}$'
+                province:
+                  type: string
+                district:
+                  type: string
+                ward:
+                  type: string
+                street:
+                  type: string
+      responses:
+        '200':
+          description: Địa chỉ giao hàng đã được cập nhật
+
+  # ==================== ADMIN PROMOTIONS ====================
+  /admin/promotions/vouchers:
+    post:
+      tags: [Admin - Promotions]
+      summary: Tạo voucher mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, type, value]
+              properties:
+                code:
+                  type: string
+                  example: "SALE10"
+                type:
+                  type: string
+                  enum: [percent, fixed_amount]
+                value:
+                  type: number
+                  description: Phần trăm (0–100) hoặc số tiền cố định (VNĐ)
+                minOrderValue:
+                  type: integer
+                  nullable: true
+                maxUses:
+                  type: integer
+                  nullable: true
+                maxUsesPerCustomer:
+                  type: integer
+                  default: 1
+                startsAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                endsAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '201':
+          description: Voucher đã được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Voucher'
+        '409':
+          description: Mã voucher đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Admin - Promotions]
+      summary: Danh sách vouchers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách vouchers
+
+  # ==================== ADMIN CS ====================
+  /admin/tickets:
+    get:
+      tags: [Admin - CS]
+      summary: Danh sách ticket CSKH
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, completed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /admin/tickets/{id}:
+    put:
+      tags: [Admin - CS]
+      summary: Cập nhật trạng thái ticket
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected, completed]
+                note:
+                  type: string
+                refundAmount:
+                  type: integer
+                  nullable: true
+                refundMethod:
+                  type: string
+                  enum: [original_payment, bank_transfer, store_credit]
+                  nullable: true
+      responses:
+        '200':
+          description: Ticket đã được cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+
+  /admin/settings/return-policy:
+    put:
+      tags: [Admin - CS]
+      summary: Cập nhật chính sách đổi trả
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                returnWindowDays:
+                  type: integer
+                  default: 7
+                  description: Số ngày được phép đổi trả từ ngày nhận hàng
+                requireEvidence:
+                  type: boolean
+                  default: true
+                  description: Có yêu cầu ảnh/video bằng chứng không
+      responses:
+        '200':
+          description: Chính sách đã được cập nhật
+
+  # ==================== ACCOUNT ====================
+  /account/orders:
+    get:
+      tags: [Account]
+      summary: Lịch sử đơn hàng của khách hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Danh sách đơn hàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /account/orders/{id}:
+    get:
+      tags: [Account]
+      summary: Chi tiết đơn hàng của khách hàng
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chi tiết đơn hàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+        '404':
+          description: Đơn hàng không tồn tại hoặc không thuộc về người dùng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/orders/{id}/tracking:
+    get:
+      tags: [Account]
+      summary: Theo dõi trạng thái vận chuyển
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Thông tin vận chuyển và lịch sử sự kiện
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  carrier:
+                    type: string
+                  trackingCode:
+                    type: string
+                  status:
+                    type: string
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        eventCode:
+                          type: string
+                        description:
+                          type: string
+                        location:
+                          type: string
+                        occurredAt:
+                          type: string
+                          format: date-time
+
+  /account/tickets:
+    post:
+      tags: [Account]
+      summary: Tạo ticket yêu cầu đổi/trả/bảo hành
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [orderId, reason, type]
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                type:
+                  type: string
+                  enum: [return, exchange, warranty]
+                reason:
+                  type: string
+                description:
+                  type: string
+                evidence:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Ảnh/video bằng chứng
+      responses:
+        '201':
+          description: Ticket đã được tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Ngoài cửa sổ đổi trả hoặc thiếu bằng chứng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   # ==================== ADMIN REPORTS ====================
   /admin/reports/revenue:
     get:
@@ -736,6 +1877,129 @@ paths:
       responses:
         '200':
           description: Dữ liệu doanh thu
+
+  /admin/reports/orders:
+    get:
+      tags: [Admin - Reports]
+      summary: Báo cáo đơn hàng theo trạng thái
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: export
+          in: query
+          schema:
+            type: string
+            enum: [excel, csv]
+      responses:
+        '200':
+          description: Dữ liệu báo cáo đơn hàng
+
+  /admin/reports/inventory:
+    get:
+      tags: [Admin - Reports]
+      summary: Báo cáo tồn kho hiện tại
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lowStockOnly
+          in: query
+          schema:
+            type: boolean
+        - name: export
+          in: query
+          schema:
+            type: string
+            enum: [excel, csv]
+      responses:
+        '200':
+          description: Dữ liệu tồn kho
+
+  /admin/reports/cod-reconciliation:
+    get:
+      tags: [Admin - Reports]
+      summary: Báo cáo đối soát COD
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: carrier
+          in: query
+          schema:
+            type: string
+            enum: [ghn, ghtk]
+        - name: export
+          in: query
+          schema:
+            type: string
+            enum: [excel, csv]
+      responses:
+        '200':
+          description: Dữ liệu đối soát COD
+
+  /admin/reports/payment-reconciliation:
+    get:
+      tags: [Admin - Reports]
+      summary: Báo cáo đối soát thanh toán online
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: provider
+          in: query
+          schema:
+            type: string
+            enum: [vnpay, momo, zalopay]
+        - name: export
+          in: query
+          schema:
+            type: string
+            enum: [excel, csv]
+      responses:
+        '200':
+          description: Dữ liệu đối soát thanh toán online
 
   # ==================== ADMIN CMS ====================
   /admin/banners:
@@ -1528,3 +2792,128 @@ components:
         isPublished:
           type: boolean
           default: false
+
+    StaffAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [super_admin, manager, staff, warehouse]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ImeiSerial:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        variantId:
+          type: string
+          format: uuid
+        imei:
+          type: string
+          example: "354688110123456"
+        status:
+          type: string
+          enum: [in_stock, reserved, sold, returned, warranty]
+        orderItemId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Voucher:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: "SALE10"
+        type:
+          type: string
+          enum: [percent, fixed_amount]
+        value:
+          type: number
+        minOrderValue:
+          type: integer
+          nullable: true
+        maxUses:
+          type: integer
+          nullable: true
+        usedCount:
+          type: integer
+        maxUsesPerCustomer:
+          type: integer
+        isActive:
+          type: boolean
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [return, exchange, warranty]
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, completed]
+        description:
+          type: string
+          nullable: true
+        evidenceUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        refundMethod:
+          type: string
+          enum: [original_payment, bank_transfer, store_credit]
+          nullable: true
+        refundAmount:
+          type: integer
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

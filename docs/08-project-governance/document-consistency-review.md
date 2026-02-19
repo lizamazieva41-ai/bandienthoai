@@ -25,11 +25,11 @@ Mỗi tài liệu được so khớp theo 4 chiều:
 | Tài liệu | Phiên bản | Ngày | Trạng thái |
 |---|---|---|---|
 | BRD (`business-requirements.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
-| FRS (`functional-requirements.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
+| FRS (`functional-requirements.md`) | 1.1.0 | 2026-02-19 | ✅ Hoàn chỉnh (UC-AUTH-01/02/03 đã cập nhật theo DEC-02) |
 | NFR (`non-functional-requirements.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | SAD (`system-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
-| OpenAPI (`api-specification.yaml`) | 1.1.0 | 2026-02-19 | ✅ Hoàn chỉnh (enum trạng thái + CMS endpoints đã bổ sung) |
-| DB Design (`database-design.md`) | 1.1.0 | 2026-02-19 | ✅ Hoàn chỉnh (bảng banners + pages đã bổ sung) |
+| OpenAPI (`api-specification.yaml`) | 1.2.0 | 2026-02-19 | ✅ Hoàn chỉnh (enum trạng thái + CMS endpoints + tất cả endpoint MUST còn thiếu đã bổ sung) |
+| DB Design (`database-design.md`) | 1.2.0 | 2026-02-19 | ✅ Hoàn chỉnh (Data Dictionary đã bổ sung đầy đủ cho tất cả bảng trong ERD) |
 | Integration Architecture (`integration-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | Security Architecture (`security-architecture.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
 | Roadmap (`roadmap.md`) | 1.0.0 | 2026-02-19 | ✅ Hoàn chỉnh |
@@ -59,13 +59,18 @@ Mỗi tài liệu được so khớp theo 4 chiều:
 | Thuộc tính | FRS | OpenAPI |
 |---|---|---|
 | Trường đăng ký | `phone`, `password`, `name` | `phone`, `password`, `name` – nhất quán |
-| OTP flow | UC-AUTH-01: "xác thực OTP" | Endpoint `/auth/verify-otp` có trong API – nhất quán |
-| Đăng nhập bằng email | UC-AUTH-02: "email/password" | API chỉ nhận `phone` trong request body |
+| OTP flow | UC-AUTH-01: "xác thực OTP" | Endpoint `/auth/verify-otp` **chưa có** trong API gốc |
+| Quên mật khẩu | UC-AUTH-03: "Reset qua OTP" | Endpoint `/auth/forgot-password`, `/auth/reset-password` **chưa có** trong API gốc |
+| Đăng nhập bằng email | UC-AUTH-02: "email/password" (FRS cũ) | API chỉ nhận `phone` trong request body |
 
-**Mức độ:** 🟡 Trung bình – BRD/FRS cho phép email login nhưng OpenAPI chỉ định nghĩa phone login  
-**Quyết định:** MVP chỉ hỗ trợ phone login; email login đưa vào Phase 2. Cập nhật FRS UC-AUTH-02 ghi rõ: "MVP: phone/password; Phase 2: email/Google OAuth"  
+**Mức độ:** 🔴 Cao – Nhiều endpoint AUTH bắt buộc (MUST) thiếu trong OpenAPI; FRS UC-AUTH-02 cũ còn ghi email/Google OAuth trái với DEC-02  
+**Quyết định:**
+1. Bổ sung vào OpenAPI: `POST /auth/verify-otp`, `POST /auth/forgot-password`, `POST /auth/reset-password`
+2. MVP chỉ hỗ trợ phone/OTP; email login và Google OAuth đưa vào Phase 2
+3. Cập nhật FRS UC-AUTH-01/02/03 ghi rõ scope MVP  
 **Người quyết định:** Product Owner + Tech Lead  
-**Hạn chót:** Sprint 0 (chốt trước khi code Auth)
+**Hạn chót:** Sprint 0 (chốt trước khi code Auth)  
+**Trạng thái:** ✅ Đã xử lý – Endpoints `/auth/verify-otp`, `/auth/forgot-password`, `/auth/reset-password` đã bổ sung vào `api-specification.yaml`; FRS UC-AUTH-01/02/03 đã cập nhật ghi rõ "MVP: phone/OTP; Phase 2: email/Google OAuth"
 
 ---
 
@@ -118,10 +123,10 @@ CREATE TABLE pages (
 | Thuộc tính | NFR | FRS | OpenAPI |
 |---|---|---|---|
 | Public API limit | 100 req/phút/IP | GLOBAL-BR-05: 100 req/phút | 100 req/phút/IP – nhất quán |
-| Authenticated limit | Không đề cập | Không đề cập | 1000 req/phút/user |
+| Authenticated limit | **Đã có**: 1000 req/phút/user (§Rate Limiting) | Không đề cập | 1000 req/phút/user – nhất quán với NFR |
 
-**Mức độ:** 🟡 Trung bình – NFR và FRS không định nghĩa limit cho authenticated users  
-**Quyết định:** Chốt theo OpenAPI: public 100 req/phút/IP, authenticated 1000 req/phút/user. Cập nhật NFR §2.4 và FRS GLOBAL-BR-05  
+**Mức độ:** 🟢 Thấp – NFR §Rate Limiting đã định nghĩa 1000 req/phút/user, nhất quán với OpenAPI. Chỉ cần bổ sung vào FRS GLOBAL-BR-05  
+**Quyết định:** Cập nhật FRS GLOBAL-BR-05 ghi rõ: "Rate limit 100 req/phút/IP cho public API; 1000 req/phút/user cho authenticated API" để nhất quán với NFR và OpenAPI  
 **Người quyết định:** Tech Lead  
 **Hạn chót:** Sprint 0
 
@@ -214,13 +219,14 @@ CREATE TABLE pages (
 | ID | Quyết định | Trạng thái | Ảnh hưởng đến |
 |---|---|---|---|
 | DEC-01 | Cập nhật OpenAPI enum trạng thái đơn hàng đầy đủ 9 trạng thái | ✅ Đã thực hiện | OpenAPI, FE, BE |
-| DEC-02 | MVP auth: chỉ phone/password; email + Google OAuth vào Phase 2 | 🟡 Pending | FRS, OpenAPI, FE Auth |
+| DEC-02 | MVP auth: chỉ phone/OTP; email + Google OAuth vào Phase 2. Bổ sung endpoint `/auth/verify-otp`, `/auth/forgot-password`, `/auth/reset-password` vào OpenAPI | ✅ Đã thực hiện | FRS, OpenAPI, FE Auth |
 | DEC-03 | Bổ sung bảng `banners` và `pages` vào DB Design | ✅ Đã thực hiện | DB Design, BE CMS module |
-| DEC-04 | Chốt rate limit: public 100/phút, authenticated 1000/phút | 🟡 Pending | NFR, FRS GLOBAL-BR-05 |
+| DEC-04 | Chốt rate limit: public 100/phút, authenticated 1000/phút (NFR đã có, FRS GLOBAL-BR-05 cần cập nhật) | 🟡 Pending | FRS GLOBAL-BR-05 |
 | DEC-05 | Bổ sung refund flow sequence diagram vào SAD | 🟡 Pending | SAD, OpenAPI |
-| DEC-06 | Bổ sung admin CMS endpoints vào OpenAPI | ✅ Đã thực hiện | OpenAPI, FE Admin |
+| DEC-06 | Bổ sung admin CMS endpoints và tất cả endpoint MUST còn thiếu vào OpenAPI | ✅ Đã thực hiện | OpenAPI, FE Admin |
 | DEC-07 | Ghi nhận ship fee tolerance ±5% vào Integration Architecture | 🟡 Pending | Integration Architecture |
 | DEC-08 | Thêm Blog vào Phase 3 Roadmap | 🟡 Pending | Roadmap |
+| DEC-09 | Hoàn thiện Data Dictionary DB Design cho tất cả bảng xuất hiện trong ERD (PRODUCT, CATEGORY, ADDRESS, ORDER_ITEM, PAYMENT, SHIPMENT, PROMOTION, IMEI_SERIAL, WAREHOUSE, RETURN_REQUEST, WARRANTY_CASE) | ✅ Đã thực hiện | DB Design, BE |
 
 ---
 
@@ -230,11 +236,12 @@ CREATE TABLE pages (
 |---|---|---|
 | 🔴 Cao – cần fix trước khi code | 3 | MISMATCH-01, 03, 08 |
 | 🟡 Trung bình – cần fix trong sprint liên quan | 4 | MISMATCH-02, 04, 05, 07 |
-| 🟢 Thấp / Không có vấn đề | 3 | MISMATCH-06, 09, 10 |
+| 🟡 Thấp – có action cần làm | 1 | MISMATCH-10 |
+| 🟢 Không có vấn đề | 2 | MISMATCH-06, 09 |
 
-**Độ nhất quán tổng thể:** ~75% (7/10 điểm rà soát không có vấn đề nghiêm trọng)
+**Độ nhất quán tổng thể:** ~90% (sau khi xử lý tất cả mismatch 🔴 và MISMATCH-02)
 
-> ✅ **Cập nhật Sprint 0:** Tất cả 3 mismatch 🔴 (MISMATCH-01, 03, 08) đã được xử lý. OpenAPI đã có đầy đủ enum trạng thái đơn hàng và CMS endpoints; DB Design đã có bảng `banners` và `pages`. **Tiêu chí "sẵn sàng triển khai kỹ thuật" đã đạt.** Các mismatch 🟡 còn lại cần xử lý trước sprint tương ứng theo kế hoạch.
+> ✅ **Cập nhật:** Tất cả 3 mismatch 🔴 (MISMATCH-01, 03, 08) đã được xử lý. MISMATCH-02 đã được xử lý: OpenAPI bổ sung đầy đủ endpoint AUTH, FRS đã cập nhật theo DEC-02. DB Design đã hoàn thiện Data Dictionary cho tất cả bảng trong ERD. **Tiêu chí "sẵn sàng triển khai kỹ thuật" đã đạt.** Các mismatch 🟡 còn lại (DEC-04, 05, 07, 08) cần xử lý trước sprint tương ứng theo kế hoạch.
 
 ---
 

@@ -1,10 +1,8 @@
 # Functional Requirements Specification (FRS)
 
-**Phiên bản:** 1.0.0  
+**Phiên bản:** 1.1.0  
 **Ngày:** 2026-02-19  
 **Chuẩn tham chiếu:** ISO/IEC/IEEE 29148:2018  
-
----
 
 ## 1. Module AUTH – Xác thực & Phân quyền
 
@@ -12,9 +10,9 @@
 
 | UC ID | Use Case | Actor | Mô tả |
 |---|---|---|---|
-| UC-AUTH-01 | Đăng ký tài khoản | Khách hàng | Đăng ký bằng email/số điện thoại, xác thực OTP |
-| UC-AUTH-02 | Đăng nhập | Khách hàng, Admin | Đăng nhập email/password hoặc Google OAuth |
-| UC-AUTH-03 | Quên mật khẩu | Khách hàng | Reset password qua email/OTP |
+| UC-AUTH-01 | Đăng ký tài khoản | Khách hàng | Đăng ký bằng số điện thoại + mật khẩu, xác thực OTP qua SMS *(MVP: số điện thoại; Phase 2: email)* |
+| UC-AUTH-02 | Đăng nhập | Khách hàng, Admin | Đăng nhập phone/password *(MVP); Phase 2: email/password, Google OAuth* |
+| UC-AUTH-03 | Quên mật khẩu | Khách hàng | Reset password qua OTP SMS gửi tới số điện thoại *(MVP); Phase 2: qua email* |
 | UC-AUTH-04 | Phân quyền admin | Admin | Roles: Super Admin, Manager, Staff, Warehouse |
 | UC-AUTH-05 | Quản lý phiên | Hệ thống | JWT access token (15 phút) + refresh token (30 ngày) |
 
