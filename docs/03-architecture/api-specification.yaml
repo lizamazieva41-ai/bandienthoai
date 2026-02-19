@@ -2806,6 +2806,7 @@ components:
         role:
           type: string
           enum: [super_admin, manager, staff, warehouse]
+          description: "`super_admin` chỉ tồn tại qua seed/config, không tạo được qua API"
         isActive:
           type: boolean
         createdAt:

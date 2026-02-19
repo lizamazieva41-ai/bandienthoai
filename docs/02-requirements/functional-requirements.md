@@ -10,7 +10,7 @@
 
 | UC ID | Use Case | Actor | Mô tả |
 |---|---|---|---|
-| UC-AUTH-01 | Đăng ký tài khoản | Khách hàng | Đăng ký bằng số điện thoại + mật khẩu, xác thực OTP qua SMS *(MVP: số điện thoại; Phase 2: email)* |
+| UC-AUTH-01 | Đăng ký tài khoản | Khách hàng | Luồng MVP: (1) Nhập phone + password + name → `POST /auth/register`; (2) Nhận OTP SMS; (3) Xác thực OTP → `POST /auth/verify-otp`; (4) Tài khoản được kích hoạt. *(Phase 2: hỗ trợ email)* |
 | UC-AUTH-02 | Đăng nhập | Khách hàng, Admin | Đăng nhập phone/password *(MVP); Phase 2: email/password, Google OAuth* |
 | UC-AUTH-03 | Quên mật khẩu | Khách hàng | Reset password qua OTP SMS gửi tới số điện thoại *(MVP); Phase 2: qua email* |
 | UC-AUTH-04 | Phân quyền admin | Admin | Roles: Super Admin, Manager, Staff, Warehouse |

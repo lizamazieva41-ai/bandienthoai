@@ -239,7 +239,7 @@ CREATE TABLE pages (
 | 🟡 Thấp – có action cần làm | 1 | MISMATCH-10 |
 | 🟢 Không có vấn đề | 2 | MISMATCH-06, 09 |
 
-**Độ nhất quán tổng thể:** ~90% (sau khi xử lý tất cả mismatch 🔴 và MISMATCH-02)
+**Độ nhất quán tổng thể:** ~85% (6/10 mismatch đã xử lý xong ✅; 4 mismatch 🟡 còn pending sẽ xử lý theo sprint)
 
 > ✅ **Cập nhật:** Tất cả 3 mismatch 🔴 (MISMATCH-01, 03, 08) đã được xử lý. MISMATCH-02 đã được xử lý: OpenAPI bổ sung đầy đủ endpoint AUTH, FRS đã cập nhật theo DEC-02. DB Design đã hoàn thiện Data Dictionary cho tất cả bảng trong ERD. **Tiêu chí "sẵn sàng triển khai kỹ thuật" đã đạt.** Các mismatch 🟡 còn lại (DEC-04, 05, 07, 08) cần xử lý trước sprint tương ứng theo kế hoạch.
 
