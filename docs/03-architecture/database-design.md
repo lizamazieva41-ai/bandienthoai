@@ -1,6 +1,6 @@
 # Database Design Document
 
-**Phiên bản:** 1.0.0  
+**Phiên bản:** 1.2.0  
 **Ngày:** 2026-02-19  
 
 ---
@@ -375,6 +375,161 @@ erDiagram
 | meta_description | TEXT | | Meta description cho SEO (nullable) |
 | is_published | BOOLEAN | DEFAULT false | Trang có được publish chưa |
 | published_at | TIMESTAMPTZ | | Thời gian publish (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.7 Bảng PRODUCT
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| brand | VARCHAR(100) | NOT NULL | Thương hiệu (vd: "Apple", "Samsung") |
+| model | VARCHAR(255) | NOT NULL | Tên model (vd: "iPhone 15 Pro") |
+| slug | VARCHAR(255) | UNIQUE, NOT NULL | Đường dẫn URL (auto-generate từ brand + model) |
+| description | TEXT | | Mô tả sản phẩm (HTML/Markdown) |
+| specs | JSONB | | Thông số kỹ thuật (screen_size, battery, camera...) |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'draft', CHECK IN ('active','draft','archived') | Trạng thái sản phẩm |
+| meta_title | VARCHAR(255) | | SEO meta title (nullable) |
+| meta_description | TEXT | | SEO meta description (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.8 Bảng CATEGORY
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| parent_id | UUID | FK → CATEGORY (nullable) | Danh mục cha (NULL = root) |
+| name | VARCHAR(255) | NOT NULL | Tên danh mục |
+| slug | VARCHAR(255) | UNIQUE, NOT NULL | Đường dẫn URL |
+| sort_order | INT | DEFAULT 0 | Thứ tự hiển thị |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.9 Bảng ADDRESS
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| customer_id | UUID | FK → CUSTOMER, NOT NULL | Khách hàng sở hữu địa chỉ |
+| name | VARCHAR(255) | NOT NULL | Tên người nhận |
+| phone | VARCHAR(15) | NOT NULL | Số điện thoại người nhận |
+| province | VARCHAR(100) | NOT NULL | Tỉnh/Thành phố |
+| district | VARCHAR(100) | NOT NULL | Quận/Huyện |
+| ward | VARCHAR(100) | NOT NULL | Phường/Xã |
+| street | VARCHAR(255) | NOT NULL | Địa chỉ chi tiết (số nhà, đường) |
+| is_default | BOOLEAN | DEFAULT false | Địa chỉ mặc định |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.10 Bảng ORDER_ITEM
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| order_id | UUID | FK → ORDER, NOT NULL | Đơn hàng chứa sản phẩm |
+| variant_id | UUID | FK → PRODUCT_VARIANT, NOT NULL | Biến thể sản phẩm đặt mua |
+| qty | INT | NOT NULL, CHECK > 0 | Số lượng |
+| unit_price | BIGINT | NOT NULL, CHECK ≥ 0 | Đơn giá tại thời điểm đặt (VNĐ) |
+| total_price | BIGINT | NOT NULL, CHECK ≥ 0 | Tổng tiền dòng (qty × unit_price) |
+
+### 2.11 Bảng PAYMENT
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| order_id | UUID | FK → ORDER, NOT NULL | Đơn hàng thanh toán |
+| provider | VARCHAR(30) | NOT NULL, CHECK IN ('vnpay','momo','zalopay','cod','bank_transfer') | Cổng/phương thức thanh toán |
+| transaction_ref | VARCHAR(100) | UNIQUE, NOT NULL | Reference ID nội bộ (để đối soát) |
+| provider_ref | VARCHAR(100) | | Reference ID từ cổng thanh toán (nullable) |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending', CHECK IN ('pending','completed','failed','refunded') | Trạng thái giao dịch |
+| amount | BIGINT | NOT NULL, CHECK ≥ 0 | Số tiền (VNĐ) |
+| metadata | JSONB | | Dữ liệu bổ sung từ cổng thanh toán |
+| paid_at | TIMESTAMPTZ | | Thời điểm thanh toán thành công (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+
+### 2.12 Bảng SHIPMENT
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| order_id | UUID | FK → ORDER, NOT NULL | Đơn hàng liên quan |
+| carrier | VARCHAR(20) | NOT NULL, CHECK IN ('ghn','ghtk') | Đơn vị vận chuyển |
+| tracking_code | VARCHAR(100) | UNIQUE, NOT NULL | Mã vận đơn từ carrier |
+| status | VARCHAR(50) | NOT NULL | Trạng thái vận chuyển (theo chuẩn carrier) |
+| cod_amount | BIGINT | DEFAULT 0 | Số tiền thu hộ COD (0 nếu đã thanh toán trước) |
+| shipping_fee | BIGINT | NOT NULL | Phí vận chuyển thực tế |
+| allow_open_package | BOOLEAN | DEFAULT false | Cho phép đồng kiểm khi nhận hàng |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.13 Bảng PROMOTION
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| code | VARCHAR(50) | UNIQUE, NOT NULL | Mã voucher |
+| type | VARCHAR(20) | NOT NULL, CHECK IN ('percent','fixed_amount') | Loại giảm giá |
+| value | DECIMAL(10,2) | NOT NULL, CHECK > 0 | Giá trị: % hoặc số tiền VNĐ |
+| min_order_value | BIGINT | | Giá trị đơn hàng tối thiểu để áp dụng (nullable) |
+| max_uses | INT | | Tổng số lần dùng tối đa (nullable = không giới hạn) |
+| used_count | INT | NOT NULL, DEFAULT 0 | Số lần đã dùng |
+| max_uses_per_customer | INT | DEFAULT 1 | Số lần tối đa mỗi khách hàng |
+| starts_at | TIMESTAMPTZ | | Thời gian bắt đầu áp dụng (nullable) |
+| ends_at | TIMESTAMPTZ | | Thời gian hết hạn (nullable) |
+| is_active | BOOLEAN | DEFAULT true | Voucher có đang hoạt động |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.14 Bảng WAREHOUSE
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| name | VARCHAR(255) | NOT NULL | Tên kho/chi nhánh |
+| address | TEXT | NOT NULL | Địa chỉ kho |
+| is_active | BOOLEAN | DEFAULT true | Kho có đang hoạt động |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.15 Bảng IMEI_SERIAL
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| variant_id | UUID | FK → PRODUCT_VARIANT, NOT NULL | Biến thể sản phẩm |
+| order_item_id | UUID | FK → ORDER_ITEM (nullable) | Dòng đơn hàng (khi đã bán) |
+| imei | VARCHAR(20) | UNIQUE, NOT NULL | Mã IMEI/serial number |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'in_stock', CHECK IN ('in_stock','reserved','sold','returned','warranty') | Trạng thái |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+
+### 2.16 Bảng RETURN_REQUEST
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| order_id | UUID | FK → ORDER, NOT NULL | Đơn hàng liên quan |
+| reason | VARCHAR(255) | NOT NULL | Lý do đổi/trả |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending', CHECK IN ('pending','approved','rejected','completed') | Trạng thái xử lý |
+| description | TEXT | | Mô tả chi tiết (nullable) |
+| evidence_urls | JSONB | | URLs ảnh/video bằng chứng |
+| refund_method | VARCHAR(30) | | Phương thức hoàn tiền (nullable) |
+| refund_amount | BIGINT | | Số tiền hoàn (nullable) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
+
+### 2.17 Bảng WARRANTY_CASE
+
+| Column | Type | Constraints | Mô tả |
+|---|---|---|---|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Định danh duy nhất |
+| customer_id | UUID | FK → CUSTOMER, NOT NULL | Khách hàng yêu cầu |
+| variant_id | UUID | FK → PRODUCT_VARIANT, NOT NULL | Biến thể sản phẩm bảo hành |
+| imei | VARCHAR(20) | | IMEI thiết bị bảo hành (nullable) |
+| issue | VARCHAR(255) | NOT NULL | Mô tả sự cố |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'open', CHECK IN ('open','processing','resolved','closed') | Trạng thái bảo hành |
+| description | TEXT | | Chi tiết mô tả (nullable) |
+| evidence_urls | JSONB | | URLs ảnh/video bằng chứng |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | Thời gian tạo |
 | updated_at | TIMESTAMPTZ | DEFAULT NOW() | Cập nhật cuối |
 

@@ -40,7 +40,7 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 | UC-CAT-02 | Quản lý hình ảnh | `AdminProductImages` | `POST /admin/products/{id}/images`, `DELETE /admin/products/{id}/images/{imageId}` | `product_images` | TC-CAT-03 | MUST | 🔲 |
 | UC-CAT-03 | Tìm kiếm sản phẩm | `SearchPage`, `CategoryPage` | `GET /products?q=&brand=&price_min=&price_max=` | `products`, `product_variants` | TC-CAT-04, TC-CAT-05 | MUST | 🔲 |
 | UC-CAT-04 | Xem chi tiết sản phẩm | `ProductDetailPage` | `GET /products/{slug}` | `products`, `product_variants`, `inventory` | TC-CAT-06 | MUST | 🔲 |
-| UC-CAT-05 | Quản lý danh mục | `AdminCategoryPage` | `GET/POST /admin/categories`, `PUT/DELETE /admin/categories/{id}` | `categories`, `product_categories` | TC-CAT-07 | MUST | 🔲 |
+| UC-CAT-05 | Quản lý danh mục | `AdminCategoryPage` | `GET /admin/categories`, `POST /admin/categories`, `PUT /admin/categories/{id}`, `DELETE /admin/categories/{id}` | `categories`, `product_categories` | TC-CAT-07 | MUST | 🔲 |
 | UC-CAT-06 | SEO metadata | `AdminProductSEO` | `PUT /admin/products/{id}` (field: seo) | `products` (slug, meta_title, meta_desc) | TC-CAT-08 | MUST | 🔲 |
 
 **Coverage CATALOG:** 6/6 use cases = **100%**
@@ -53,7 +53,7 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 |---|---|---|---|---|---|---|---|
 | UC-PRC-01 | Tạo sale price | `AdminVariantPricing` | `PUT /admin/products/{id}/variants/{variantId}` | `product_variants` (sale_price, sale_starts_at, sale_ends_at) | TC-PRC-01 | MUST | 🔲 |
 | UC-PRC-02 | Tạo voucher | `AdminVoucherForm` | `POST /admin/promotions/vouchers` | `promotions`, `vouchers` | TC-PRC-02, TC-PRC-03 | MUST | 🔲 |
-| UC-PRC-03 | Áp voucher | `CartPage`, `CheckoutPage` | `POST /cart/apply-voucher` | `promotions`, `order_promotions` | TC-PRC-04, TC-PRC-05 | MUST | 🔲 |
+| UC-PRC-03 | Áp voucher | `CartPage`, `CheckoutPage` | `POST /cart/voucher` | `promotions`, `order_promotions` | TC-PRC-04, TC-PRC-05 | MUST | 🔲 |
 | UC-PRC-04 | Flash sale | `AdminFlashSalePage` | `POST /admin/promotions/flash-sales` | `promotions` | TC-PRC-06 | LATER | 🔲 |
 | UC-PRC-05 | Quà tặng kèm | `AdminGiftRulePage` | `POST /admin/promotions/gift-rules` | `promotions` | TC-PRC-07 | LATER | 🔲 |
 
@@ -95,9 +95,9 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 
 | UC ID | Use Case | Screen/UI | API Endpoint | DB Table(s) | Test Case ID | Priority | Status |
 |---|---|---|---|---|---|---|---|
-| UC-PAY-01 | Tạo payment intent | `CheckoutPage` | `POST /payments/initiate` | `payments` | TC-PAY-01 | MUST | 🔲 |
+| UC-PAY-01 | Tạo payment intent | `CheckoutPage` | `POST /payments/create` | `payments` | TC-PAY-01 | MUST | 🔲 |
 | UC-PAY-02 | Redirect tới gateway | `CheckoutPage` (redirect) | *(redirect URL from gateway)* | `payments` | TC-PAY-02 | MUST | 🔲 |
-| UC-PAY-03 | Xử lý webhook thanh toán | *(background handler)* | `POST /webhooks/payment` | `payments`, `orders` | TC-PAY-03, TC-PAY-04 | MUST | 🔲 |
+| UC-PAY-03 | Xử lý webhook thanh toán | *(background handler)* | `POST /webhooks/payment/{provider}` | `payments`, `orders` | TC-PAY-03, TC-PAY-04 | MUST | 🔲 |
 | UC-PAY-04 | Hoàn tiền (refund) | `AdminOrderDetail` (nút refund) | `POST /admin/orders/{id}/refund` | `payments`, `payment_refunds` | TC-PAY-05 | MUST | 🔲 |
 | UC-PAY-05 | Đối soát giao dịch | `AdminReportsCOD` | `GET /admin/reports/payment-reconciliation` | `payments` | TC-PAY-06 | MUST | 🔲 |
 
@@ -109,10 +109,10 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 
 | UC ID | Use Case | Screen/UI | API Endpoint | DB Table(s) | Test Case ID | Priority | Status |
 |---|---|---|---|---|---|---|---|
-| UC-SHIP-01 | Tính phí ship | `CheckoutPage` | `POST /shipping/calculate` | *(external API call, no DB)* | TC-SHIP-01 | MUST | 🔲 |
+| UC-SHIP-01 | Tính phí ship | `CheckoutPage` | `POST /shipping/estimate` | *(external API call, no DB)* | TC-SHIP-01 | MUST | 🔲 |
 | UC-SHIP-02 | Tạo vận đơn | `AdminOrderDetail` (tạo vận đơn) | `POST /admin/orders/{id}/shipments` | `shipments` | TC-SHIP-02 | MUST | 🔲 |
 | UC-SHIP-03 | Tracking | `OrderDetailPage`, `AccountOrdersPage` | `GET /account/orders/{id}/tracking` | `shipments`, `shipment_events` | TC-SHIP-03 | MUST | 🔲 |
-| UC-SHIP-04 | Xử lý webhook carrier | *(background handler)* | `POST /webhooks/shipping` | `shipments`, `shipment_events`, `orders` | TC-SHIP-04 | MUST | 🔲 |
+| UC-SHIP-04 | Xử lý webhook carrier | *(background handler)* | `POST /webhooks/shipping/{carrier}` | `shipments`, `shipment_events`, `orders` | TC-SHIP-04 | MUST | 🔲 |
 | UC-SHIP-05 | Đổi địa chỉ giao | `AdminOrderDetail` | `PUT /admin/orders/{id}/shipping-address` | `orders` | TC-SHIP-05 | SHOULD | 🔲 |
 
 **Coverage SHIPPING (MVP):** 4/5 MUST use cases = **80%** (UC-SHIP-05 là SHOULD)
@@ -136,9 +136,9 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 
 | UC ID | Use Case | Screen/UI | API Endpoint | DB Table(s) | Test Case ID | Priority | Status |
 |---|---|---|---|---|---|---|---|
-| UC-CMS-01 | Quản lý banner | `AdminBannerPage` | `GET/POST /admin/banners`, `PUT/DELETE /admin/banners/{id}` | `banners` | TC-CMS-01 | MUST | 🔲 |
-| UC-CMS-02 | Trang tĩnh | `AdminPagesPage` | `GET/POST /admin/pages`, `PUT/DELETE /admin/pages/{id}` | `pages` | TC-CMS-02 | MUST | 🔲 |
-| UC-CMS-03 | Blog/tin tức | `AdminBlogPage` | `GET/POST /admin/blog/posts` | `blog_posts` | TC-CMS-03 | LATER | 🔲 |
+| UC-CMS-01 | Quản lý banner | `AdminBannerPage` | `GET /admin/banners`, `POST /admin/banners`, `PUT /admin/banners/{id}`, `DELETE /admin/banners/{id}` | `banners` | TC-CMS-01 | MUST | 🔲 |
+| UC-CMS-02 | Trang tĩnh | `AdminPagesPage` | `GET /admin/pages`, `POST /admin/pages`, `PUT /admin/pages/{id}`, `DELETE /admin/pages/{id}` | `pages` | TC-CMS-02 | MUST | 🔲 |
+| UC-CMS-03 | Blog/tin tức | `AdminBlogPage` | `GET /admin/blog/posts`, `POST /admin/blog/posts` | `blog_posts` | TC-CMS-03 | LATER | 🔲 |
 | UC-CMS-04 | Auto sitemap | *(build/cron job)* | `GET /sitemap.xml` | `products`, `pages` | TC-CMS-04 | MUST | 🔲 |
 
 **Coverage CMS (MVP):** 3/3 MUST use cases = **100%**
@@ -171,15 +171,14 @@ Mỗi dòng trong RTM ánh xạ một Use Case từ FRS sang:
 | PAYMENT | 5 | 5 | ✅ 5/5 | ✅ | 100% |
 | SHIPPING | 5 | 4 | ✅ 4/4 | ✅ | 80%* |
 | CUSTOMER SERVICE | 4 | 4 | ✅ 4/4 | ✅ | 100% |
-| CMS | 4 | 3 | ⚠️ 3/3 (pending) | ⚠️ Thiếu `banners`, `pages` | 75%* |
+| CMS | 4 | 3 | ✅ 3/3 | ✅ | 100% |
 | REPORTING | 5 | 5 | ✅ 5/5 | ✅ | 100% |
-| **TOTAL** | **50** | **46** | **46/46** | **48/50** | **~95%** |
+| **TOTAL** | **50** | **46** | **46/46** | **50/50** | **100%** |
 
 > *PRICING: 2 use cases (flash sale, gift) là LATER – không tính vào MVP coverage  
-> *SHIPPING: UC-SHIP-05 là SHOULD – tính vào Phase 1+  
-> *CMS: Endpoint `/admin/banners` và `/admin/pages` cần bổ sung vào OpenAPI (xem [Document Consistency Review](document-consistency-review.md) MISMATCH-08); DB schema cần bổ sung (MISMATCH-03)
+> *SHIPPING: UC-SHIP-05 là SHOULD – tính vào Phase 1+
 
-**Tổng coverage MVP: ~95% (46/46 MUST use cases có đủ API + DB, trừ CMS cần bổ sung)**
+**Tổng coverage MVP: 100% (46/46 MUST use cases có đủ API + DB)**
 
 ---
 

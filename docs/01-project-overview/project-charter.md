@@ -12,7 +12,7 @@
 |---|---|
 | **Tên dự án** | Xây dựng ứng dụng web thương mại điện tử bán điện thoại di động |
 | **Project Sponsor** | Ban lãnh đạo doanh nghiệp |
-| **Project Manager** | TBD |
+| **Project Manager** | TBD – xác nhận trước Sprint 0 |
 | **Ngày bắt đầu** | 2026-02-20 |
 | **Ngày dự kiến Go-live** | 2026-05-30 (MVP) |
 | **Ngân sách ước tính** | 900 triệu – 1,8 tỷ VNĐ (phương án trung) |
